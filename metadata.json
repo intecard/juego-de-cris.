@@ -1,0 +1,6 @@
+{
+  "name": "Dino World: Prehistoric Quest 3D",
+  "description": "AAA Prehistoric 3D Dino Exploration, Capture, Mounting & Tactical Battle Game starring a boy explorer and his frog companion across 25 unique levels.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
