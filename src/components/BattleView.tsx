@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dinosaur, DinoSkill, BattleState } from '../types/game';
 import { sound } from '../utils/audio';
 import { Flame, Droplets, Zap, Shield, Heart, Sparkles, Volume2, Award, ArrowLeft } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface BattleViewProps {
   playerTeam: Dinosaur[];
@@ -60,7 +61,7 @@ export const BattleView: React.FC<BattleViewProps> = ({ playerTeam, wildDino, on
   const activeDino = playerDinos[activePlayerIndex];
 
   const handleUseSkill = (skill: DinoSkill) => {
-    if (isVictory || isDefeat) return;
+    if (isVictory || isDefeat || isCapturing) return;
 
     sound.playSound('attack');
 
@@ -80,11 +81,20 @@ export const BattleView: React.FC<BattleViewProps> = ({ playerTeam, wildDino, on
       sound.playSound('victory');
       setIsVictory(true);
       setBattleLog(prev => [`¡Has derrotado al ${enemyDino.name}!`, ...prev]);
+      
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#10B981', '#F59E0B', '#EF4444']
+      });
       return;
     }
 
     // Enemy Turn Counter Attack
     setTimeout(() => {
+      if (newEnemyHp <= 0) return;
+
       sound.playSound('roar');
       const enemyDmg = Math.max(10, Math.floor(enemyDino.attack * 0.6));
       const newPlayerHp = Math.max(0, activeDino.hp - enemyDmg);
@@ -125,6 +135,14 @@ export const BattleView: React.FC<BattleViewProps> = ({ playerTeam, wildDino, on
         setIsCapturing(false);
         const captured = { ...enemyDino, isCaptured: true };
         setBattleLog(prev => [`¡ÉXITO! ¡Has capturado al ${enemyDino.name}!`, ...prev]);
+        
+        confetti({
+          particleCount: 200,
+          spread: 100,
+          origin: { y: 0.5 },
+          colors: ['#3B82F6', '#8B5CF6', '#FCD34D']
+        });
+
         setTimeout(() => onBattleEnd(true, captured), 2000);
       } else {
         setIsCapturing(false);

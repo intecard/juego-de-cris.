@@ -1,1 +1,34 @@
 @import "tailwindcss";
+
+/* =====================================================================
+   MEJORAS DE JUEGO: Configuraciones globales para una experiencia fluida
+   ===================================================================== */
+
+html, body, #root {
+  /* Elimina márgenes por defecto */
+  margin: 0;
+  padding: 0;
+  
+  /* Asegura que el juego ocupe el 100% de la pantalla */
+  width: 100vw;
+  height: 100vh;
+  
+  /* EVITA EL SCROLL: Mantiene la pantalla fija como un videojuego real */
+  overflow: hidden; 
+  
+  /* EVITA SELECCIÓN DE TEXTO: Evita el sombreado azul al hacer clics rápidos */
+  user-select: none; 
+  -webkit-user-select: none;
+  
+  /* Fondo oscuro por defecto para evitar pantallazos blancos al cargar */
+  background-color: #0f172a; 
+  color: white;
+  
+  /* Fuente moderna por defecto */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Ocultar las barras de desplazamiento (scrollbars) por completo */
+::-webkit-scrollbar {
+  display: none;
+}

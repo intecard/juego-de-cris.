@@ -2,6 +2,8 @@ import React from 'react';
 import { LevelInfo } from '../types/game';
 import { sound } from '../utils/audio';
 import { Sparkles, Sun, Award, ArrowRight } from 'lucide-react';
+// MEJORA: Importamos la librería de confeti para darle vida a las cinemáticas épicas
+import confetti from 'canvas-confetti';
 
 interface CinematicModalProps {
   type: 'EggPortal' | 'RaptorPack' | 'KingRexVictory';
@@ -14,8 +16,45 @@ export const CinematicModal: React.FC<CinematicModalProps> = ({ type, level, onC
     if (type === 'EggPortal') {
       sound.playSound('eggCracking');
       setTimeout(() => sound.playSound('portal'), 1200);
+      
+      // MEJORA VISUAL: Destello mágico de confeti dorado al abrir el portal
+      setTimeout(() => {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.55 },
+          colors: ['#FCD34D', '#F59E0B', '#FFFFFF']
+        });
+      }, 1200);
+
     } else if (type === 'KingRexVictory') {
       sound.playSound('victory');
+      
+      // MEJORA VISUAL: Lluvia continua de confeti para celebrar el gran final del juego
+      const duration = 4000;
+      const end = Date.now() + duration;
+
+      const frame = () => {
+        confetti({
+          particleCount: 6,
+          angle: 60,
+          spread: 60,
+          origin: { x: 0 },
+          colors: ['#F59E0B', '#EF4444', '#10B981']
+        });
+        confetti({
+          particleCount: 6,
+          angle: 120,
+          spread: 60,
+          origin: { x: 1 },
+          colors: ['#F59E0B', '#EF4444', '#10B981']
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+      frame();
     }
   }, [type]);
 
