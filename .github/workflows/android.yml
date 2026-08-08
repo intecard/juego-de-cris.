@@ -1,0 +1,47 @@
+name: Construir APK Android
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Descargar el código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Instalar dependencias
+      run: npm install
+
+    - name: Construir el juego web
+      run: npm run build
+
+    - name: Sincronizar con Android
+      run: npx cap sync android
+
+    - name: Configurar Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Dar permisos al compilador
+      working-directory: ./android
+      run: chmod +x gradlew
+
+    - name: Compilar el APK
+      working-directory: ./android
+      run: ./gradlew assembleDebug
+
+    - name: Guardar el APK listo para descargar
+      uses: actions/upload-artifact@v4
+      with:
+        name: Juego-de-Cris-APK
+        path: android/app/build/outputs/apk/debug/app-debug.apk

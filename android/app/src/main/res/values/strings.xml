@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Juego de Cris</string>
+    <string name="title_activity_main">Juego de Cris</string>
+    <string name="package_name">com.inteca.juego</string>
+    <string name="custom_url_scheme">com.inteca.juego</string>
+</resources>
