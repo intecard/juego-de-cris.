@@ -20,8 +20,8 @@ export interface World3DEnvironment {
 export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   const sceneGroup = new THREE.Group();
 
-  // --- TERRENO BASE CON RELIEVE VOXEL ---
-  const terrainGeo = new THREE.PlaneGeometry(140, 140, 56, 56);
+  // --- TERRENO BASE CON RELIEVE Y VERDE SELVA PROFUNDO ---
+  const terrainGeo = new THREE.PlaneGeometry(140, 140, 64, 64);
   terrainGeo.rotateX(-Math.PI / 2);
 
   const posAttr = terrainGeo.attributes.position;
@@ -29,27 +29,28 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
     const x = posAttr.getX(i);
     const z = posAttr.getZ(i);
 
-    // Ondulación natural de selva
-    let y = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 2.2;
+    // Ondulación natural del suelo tropical
+    let y = Math.sin(x * 0.09) * Math.cos(z * 0.09) * 2.0;
 
     // Aplanar el sendero central de aventura (de Z = -30 hasta Z = 25)
-    if (Math.abs(x) < 4 && z < 25) {
+    if (Math.abs(x) < 4.2 && z < 26) {
       y = 0;
     }
 
-    // Elevar la colina donde nace la Montaña Ceremonial (x = 0, z = 35)
+    // Elevar la colina de la Montaña Ceremonial (x = 0, z = 35)
     const distToAltar = Math.hypot(x, z - 35);
     if (distToAltar < 18) {
-      y += (18 - distToAltar) * 0.65;
+      y += (18 - distToAltar) * 0.7;
     }
 
     posAttr.setY(i, y);
   }
   terrainGeo.computeVertexNormals();
 
+  // Color base verde musgo tropical
   const terrainMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(level.terrainColor || '#1b4332'),
-    roughness: 0.85,
+    color: new THREE.Color(level.terrainColor || '#144523'),
+    roughness: 0.9,
     flatShading: true,
   });
 
@@ -57,46 +58,43 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   terrainMesh.receiveShadow = true;
   sceneGroup.add(terrainMesh);
 
-  // --- CAMINO LARGO DE AVENTURA (BLOQUES DE PIEDRA/TIERRA) ---
+  // --- CAMINO DE AVENTURA (SENDERO DE BLOQUES) ---
   const pathGroup = new THREE.Group();
   const pathMat = new THREE.MeshStandardMaterial({
-    color: 0x8d6e63,
-    roughness: 0.9,
+    color: 0x6d4c41,
+    roughness: 0.95,
     flatShading: true,
   });
 
-  for (let z = -25; z < 28; z += 3) {
-    const tileGeo = new THREE.BoxGeometry(3.6, 0.2, 2.6);
+  for (let z = -26; z < 27; z += 2.8) {
+    const tileGeo = new THREE.BoxGeometry(3.8, 0.18, 2.4);
     const tileMesh = new THREE.Mesh(tileGeo, pathMat);
-    tileMesh.position.set((Math.random() - 0.5) * 0.6, 0.05, z);
+    tileMesh.position.set((Math.random() - 0.5) * 0.5, 0.05, z);
     tileMesh.receiveShadow = true;
     pathGroup.add(tileMesh);
   }
   sceneGroup.add(pathGroup);
 
-  // --- MONTAÑA CEREMONIAL VOXEL (PIRÁMIDE ESCALONADA EN Z = 35) ---
+  // --- MONTAÑA CEREMONIAL VOXEL EN Z = 35 ---
   const ceremonialGroup = new THREE.Group();
   ceremonialGroup.position.set(0, 0, 35);
 
   const rockMat = new THREE.MeshStandardMaterial({
-    color: 0x4a4e69,
+    color: 0x3d405b,
     roughness: 0.9,
     flatShading: true,
   });
 
-  // Base ancha de la montaña
   const step1 = new THREE.Mesh(new THREE.BoxGeometry(14, 2, 14), rockMat);
   step1.position.y = 1;
   step1.castShadow = true;
   step1.receiveShadow = true;
 
-  // Peldaño medio
   const step2 = new THREE.Mesh(new THREE.BoxGeometry(10, 2, 10), rockMat);
   step2.position.y = 3;
   step2.castShadow = true;
   step2.receiveShadow = true;
 
-  // Cima / Altar sagrado
   const ceremonialRockMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 6), rockMat);
   ceremonialRockMesh.position.y = 5;
   ceremonialRockMesh.castShadow = true;
@@ -104,24 +102,23 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
 
   ceremonialGroup.add(step1, step2, ceremonialRockMesh);
 
-  // --- EL HUEVO LEGENDARIO Y PILARES EN LA CIMA ---
+  // --- HUEVO LEGENDARIO Y PILARES EN LA CIMA ---
   const eggGeo = new THREE.SphereGeometry(1.0, 16, 16);
   eggGeo.scale(1.0, 1.35, 1.0);
   const eggMat = new THREE.MeshStandardMaterial({
     color: 0xffd166,
-    emissive: 0xffb703,
+    emissive: 0xffa200,
     emissiveIntensity: 0.8,
     roughness: 0.2,
     metalness: 0.8,
   });
   const eggMesh = new THREE.Mesh(eggGeo, eggMat);
-  eggMesh.position.set(0, 7.2, 0); // Flotando sobre el altar
+  eggMesh.position.set(0, 7.2, 0);
 
-  const eggLight = new THREE.PointLight(0xffb703, 3, 20);
+  const eggLight = new THREE.PointLight(0xffb703, 3.5, 20);
   eggLight.position.set(0, 7.8, 0);
 
-  // 4 Pilares Voxel alrededor del huevo
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0xc9ada7, roughness: 0.5 });
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0xb7b7a4, roughness: 0.6 });
   const pillarOffsets = [
     [-2, -2],
     [2, -2],
@@ -139,7 +136,7 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   ceremonialGroup.add(eggMesh, eggLight);
   sceneGroup.add(ceremonialGroup);
 
-  // --- CUERPO DE AGUA (BIOMAS DE RÍO, PANTANO O COSTA) ---
+  // --- CUERPO DE AGUA (RÍOS O PANTANOS) ---
   let waterMesh: THREE.Mesh | undefined;
   if (level.biome === 'Swamp' || level.biome === 'River' || level.biome === 'Coast') {
     const waterGeo = new THREE.PlaneGeometry(140, 140);
@@ -156,73 +153,98 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
     sceneGroup.add(waterMesh);
   }
 
-  // --- JUNGLA ESTILO VOXEL (ÁRBOLES, CRISTALES Y PALMERAS EN BLOQUES) ---
-  const propCount =
-    level.foliageDensity === 'Dense' ? 85 : level.foliageDensity === 'Medium' ? 50 : 25;
+  // --- GENERACIÓN DE SELVA DENSA TIPO "CRIS_2.PNG" ---
+  // Árboles altos, helechos, arbustos y maleza tropical Voxel
+  const foliageGroup = new THREE.Group();
+  const propCount = level.foliageDensity === 'Dense' ? 140 : level.foliageDensity === 'Medium' ? 85 : 45;
 
   const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x4e3629, roughness: 0.9 });
-  const leafColors = [0x1b4332, 0x2d6a4f, 0x40916c];
-  const crystalMat = new THREE.MeshStandardMaterial({
-    color: 0x48cae4,
-    emissive: 0x00b4d8,
-    emissiveIntensity: 0.5,
-  });
+  const leafColors = [0x1b4332, 0x2d6a4f, 0x40916c, 0x52b788, 0x74c69d];
+  const bushColors = [0x2d6a4f, 0x40916c, 0x52b788, 0x78c6a3];
 
   for (let i = 0; i < propCount; i++) {
-    const rx = (Math.random() - 0.5) * 110;
-    const rz = (Math.random() - 0.5) * 110;
+    const rx = (Math.random() - 0.5) * 115;
+    const rz = (Math.random() - 0.5) * 115;
 
-    // Respetar el camino de aventura libre de obstáculos
-    if (Math.abs(rx) < 4.5 && rz < 28) continue;
+    // Respetar el sendero central de caminata
+    if (Math.abs(rx) < 4.8 && rz < 28) continue;
     // Respetar la montaña ceremonial
-    if (Math.hypot(rx, rz - 35) < 14) continue;
+    if (Math.hypot(rx, rz - 35) < 15) continue;
 
-    if (level.biome === 'Cave' || level.biome === 'Ruins') {
-      // Cristales Voxel
-      const crystalGeo = new THREE.BoxGeometry(
-        0.8 + Math.random() * 0.6,
-        3 + Math.random() * 3,
-        0.8 + Math.random() * 0.6
-      );
-      const crystal = new THREE.Mesh(crystalGeo, crystalMat);
-      crystal.position.set(rx, 1.5, rz);
-      crystal.rotation.y = Math.random() * Math.PI;
-      sceneGroup.add(crystal);
-    } else {
-      // Árbol Voxel Multicapa
+    const randType = Math.random();
+
+    if (randType < 0.45) {
+      // 1. ÁRBOL VOXEL ALTO TROPICAL
       const treeGroup = new THREE.Group();
       treeGroup.position.set(rx, 0, rz);
 
-      // Tronco cuadrado
-      const trunkHeight = 3 + Math.random() * 2;
-      const trunk = new THREE.Mesh(
-        new THREE.BoxGeometry(0.8, trunkHeight, 0.8),
-        treeTrunkMat
-      );
+      const trunkHeight = 3.5 + Math.random() * 2.5;
+      const trunk = new THREE.Mesh(new THREE.BoxGeometry(0.8, trunkHeight, 0.8), treeTrunkMat);
       trunk.position.y = trunkHeight / 2;
       trunk.castShadow = true;
       treeGroup.add(trunk);
 
-      // Copas de hojas en cubos superpuestos
       const leafColor = leafColors[i % leafColors.length];
-      const leafMat = new THREE.MeshStandardMaterial({
-        color: leafColor,
-        roughness: 0.7,
-        flatShading: true,
-      });
+      const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.7, flatShading: true });
 
-      const leavesBottom = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.5, 3.2), leafMat);
+      const leavesBottom = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.6, 3.4), leafMat);
       leavesBottom.position.y = trunkHeight;
       leavesBottom.castShadow = true;
 
-      const leavesTop = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.0), leafMat);
-      leavesTop.position.y = trunkHeight + 1.2;
+      const leavesTop = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.4, 2.2), leafMat);
+      leavesTop.position.y = trunkHeight + 1.3;
       leavesTop.castShadow = true;
 
       treeGroup.add(leavesBottom, leavesTop);
-      sceneGroup.add(treeGroup);
+      foliageGroup.add(treeGroup);
+    } else if (randType < 0.8) {
+      // 2. ARBUSTO / MALEZA DENSA DEL SUELO (TIPO CRIS_2.PNG)
+      const bushGroup = new THREE.Group();
+      bushGroup.position.set(rx, 0.5, rz);
+
+      const bushColor = bushColors[i % bushColors.length];
+      const bushMat = new THREE.MeshStandardMaterial({ color: bushColor, roughness: 0.8, flatShading: true });
+
+      // Agrupación de cubos para simular maleza frondosa
+      const mainBush = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.2, 1.6), bushMat);
+      mainBush.castShadow = true;
+      mainBush.receiveShadow = true;
+      bushGroup.add(mainBush);
+
+      const sideBush1 = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.9, 1.1), bushMat);
+      sideBush1.position.set(0.6, -0.15, 0.4);
+      sideBush1.receiveShadow = true;
+      bushGroup.add(sideBush1);
+
+      const sideBush2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), bushMat);
+      sideBush2.position.set(-0.5, -0.2, -0.5);
+      sideBush2.receiveShadow = true;
+      bushGroup.add(sideBush2);
+
+      bushGroup.rotation.y = Math.random() * Math.PI;
+      foliageGroup.add(bushGroup);
+    } else {
+      // 3. HELECHOS TROPICALES Y PASTO VOXEL ALTO
+      const fernGroup = new THREE.Group();
+      fernGroup.position.set(rx, 0.3, rz);
+
+      const fernMat = new THREE.MeshStandardMaterial({ color: 0x52b788, roughness: 0.6, flatShading: true });
+
+      for (let f = 0; f < 4; f++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.9), fernMat);
+        blade.rotation.y = (f * Math.PI) / 2;
+        blade.rotation.x = 0.35; // Inclinado hacia afuera como hoja de helecho
+        blade.position.y = 0.2;
+        blade.castShadow = true;
+        fernGroup.add(blade);
+      }
+
+      fernGroup.rotation.y = Math.random() * Math.PI;
+      foliageGroup.add(fernGroup);
     }
   }
+
+  sceneGroup.add(foliageGroup);
 
   // --- SISTEMA CLIMÁTICO DE PARTÍCULAS ---
   const particleCount = 350;
@@ -294,12 +316,12 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
       dirLight.intensity = 1.0;
       dirLight.color.setHex(0xf8f9fa);
     } else {
-      // Clima Tropical por defecto
-      scene.background = new THREE.Color(0x0f2b18);
-      scene.fog = new THREE.FogExp2(0x0f2b18, 0.022);
-      ambLight.intensity = 0.5;
-      dirLight.intensity = 1.4;
-      dirLight.color.setHex(0xfffae6);
+      // Clima Tropical de Selva (Fondo Verde Profundo)
+      scene.background = new THREE.Color(0x0d331a);
+      scene.fog = new THREE.FogExp2(0x0d331a, 0.018);
+      ambLight.intensity = 0.55;
+      dirLight.intensity = 1.8;
+      dirLight.color.setHex(0xffea85);
     }
   };
 
