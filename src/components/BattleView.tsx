@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Dinosaur, DinoSkill, BattleState } from '../types/game';
+import { Dinosaur } from '../types/game';
+import { Shield, Flame, Sparkles, LogOut, Heart, Swords, AlertTriangle } from 'lucide-react';
 import { sound } from '../utils/audio';
-import { Flame, Droplets, Zap, Shield, Heart, Sparkles, Volume2, Award, ArrowLeft } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface BattleViewProps {
   playerTeam: Dinosaur[];
@@ -10,289 +9,196 @@ interface BattleViewProps {
   onBattleEnd: (isVictory: boolean, capturedDino?: Dinosaur) => void;
 }
 
-export const BattleView: React.FC<BattleViewProps> = ({ playerTeam, wildDino, onBattleEnd }) => {
-  const [activePlayerIndex, setActivePlayerIndex] = useState<number>(0);
-  const [playerDinos, setPlayerDinos] = useState<Dinosaur[]>(
-    playerTeam.length > 0
-      ? playerTeam
-      : [
-          {
-            id: 'starter_dino',
-            speciesId: 'triceratops',
-            name: 'Triceratops Aliado',
-            rarity: 'Rare',
-            element: 'Earth',
-            level: 5,
-            exp: 100,
-            maxExp: 500,
-            hp: 240,
-            maxHp: 240,
-            attack: 50,
-            defense: 60,
-            speed: 45,
-            affinity: 80,
-            personality: 'Brave',
-            skills: [
-              { id: 'horn_charge', name: 'Carga de Cuerno', nameEs: 'Carga de Cuerno', description: 'Ataca con ímpetu.', element: 'Earth', damage: 45, cooldown: 0, energyCost: 20, type: 'Attack', icon: 'Shield' },
-              { id: 'earth_smash', name: 'Sismo Terrestre', nameEs: 'Sismo Terrestre', description: 'Impacta el terreno.', element: 'Earth', damage: 70, cooldown: 2, energyCost: 35, type: 'Attack', icon: 'Zap' }
-            ],
-            isCaptured: true,
-            canMount: true,
-            mountType: 'Land',
-            modelType: 'triceratops',
-            colorHex: '#2a9d8f',
-            secondaryColorHex: '#e9c46a',
-            scale: 1.8,
-            heightMeter: 3,
-            weightKg: 6000,
-            wildLocation: 'Selva',
-          }
-        ]
-  );
+export const BattleView: React.FC<BattleViewProps> = ({
+  playerTeam,
+  wildDino,
+  onBattleEnd,
+}) => {
+  // Estado local para simular la vida del dinosaurio salvaje en combate
+  const [wildHp, setWildHp] = useState<number>(100);
+  const maxWildHp = 100;
+  const isBoss = wildDino.name.toLowerCase().includes('rey') || wildDino.name.toLowerCase().includes('king');
 
-  const [enemyDino, setEnemyDino] = useState<Dinosaur>({ ...wildDino });
-  const [battleLog, setBattleLog] = useState<string[]>([
-    `¡Un ${wildDino.name} salvaje de Nivel ${wildDino.level} ha aparecido!`
-  ]);
-  const [isCapturing, setIsCapturing] = useState<boolean>(false);
-  const [isVictory, setIsVictory] = useState<boolean>(false);
-  const [isDefeat, setIsDefeat] = useState<boolean>(false);
+  // Acción 1: Atacar al dinosaurio salvaje
+  const handleAttack = () => {
+    sound.playSound('roar');
+    const damage = Math.floor(Math.random() * 30) + 25; // Daño entre 25 y 55
+    const nextHp = Math.max(0, wildHp - damage);
+    setWildHp(nextHp);
 
-  const activeDino = playerDinos[activePlayerIndex];
-
-  const handleUseSkill = (skill: DinoSkill) => {
-    if (isVictory || isDefeat || isCapturing) return;
-
-    sound.playSound('attack');
-
-    // Calculate player damage
-    const elemBonus = activeDino.element === wildDino.element ? 1.0 : 1.3;
-    const dmg = Math.floor((skill.damage + activeDino.attack * 0.5) * elemBonus);
-
-    const newEnemyHp = Math.max(0, enemyDino.hp - dmg);
-    setEnemyDino(prev => ({ ...prev, hp: newEnemyHp }));
-
-    setBattleLog(prev => [
-      `¡${activeDino.name} usó ${skill.nameEs} e infligió ${dmg} de daño a ${enemyDino.name}!`,
-      ...prev
-    ]);
-
-    if (newEnemyHp <= 0) {
-      sound.playSound('victory');
-      setIsVictory(true);
-      setBattleLog(prev => [`¡Has derrotado al ${enemyDino.name}!`, ...prev]);
-      
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#10B981', '#F59E0B', '#EF4444']
-      });
-      return;
+    // Si la vida llega a 0, victoria automática
+    if (nextHp === 0) {
+      setTimeout(() => {
+        sound.playSound('victory');
+        onBattleEnd(true, wildDino);
+      }, 600);
     }
-
-    // Enemy Turn Counter Attack
-    setTimeout(() => {
-      if (newEnemyHp <= 0) return;
-
-      sound.playSound('roar');
-      const enemyDmg = Math.max(10, Math.floor(enemyDino.attack * 0.6));
-      const newPlayerHp = Math.max(0, activeDino.hp - enemyDmg);
-
-      setPlayerDinos(prev => {
-        const next = [...prev];
-        next[activePlayerIndex] = { ...next[activePlayerIndex], hp: newPlayerHp };
-        return next;
-      });
-
-      setBattleLog(prev => [
-        `¡${enemyDino.name} contraatacó infligiendo ${enemyDmg} de daño!`,
-        ...prev
-      ]);
-
-      if (newPlayerHp <= 0) {
-        setIsDefeat(true);
-      }
-    }, 1000);
   };
 
-  const handleAttemptCapture = () => {
-    if (isVictory || isDefeat || isCapturing) return;
+  // Acción 2: Usar Trampa Táctica
+  const handleTrapTactics = () => {
+    sound.playSound('click');
+    const trapDamage = 40;
+    const nextHp = Math.max(0, wildHp - trapDamage);
+    setWildHp(nextHp);
 
-    setIsCapturing(true);
-    sound.playSound('capture');
-
-    setBattleLog(prev => [`¡Lanzando Cápsula de Captura sobre ${enemyDino.name}...`, ...prev]);
-
-    setTimeout(() => {
-      // Success rate formula based on HP loss
-      const hpPercent = enemyDino.hp / enemyDino.maxHp;
-      const successChance = Math.max(0.2, (1 - hpPercent) * 0.95);
-
-      if (Math.random() < successChance) {
+    if (nextHp === 0) {
+      setTimeout(() => {
         sound.playSound('victory');
-        setIsVictory(true);
-        setIsCapturing(false);
-        const captured = { ...enemyDino, isCaptured: true };
-        setBattleLog(prev => [`¡ÉXITO! ¡Has capturado al ${enemyDino.name}!`, ...prev]);
-        
-        confetti({
-          particleCount: 200,
-          spread: 100,
-          origin: { y: 0.5 },
-          colors: ['#3B82F6', '#8B5CF6', '#FCD34D']
-        });
+        onBattleEnd(true, wildDino);
+      }, 600);
+    }
+  };
 
-        setTimeout(() => onBattleEnd(true, captured), 2000);
-      } else {
-        setIsCapturing(false);
-        setBattleLog(prev => [`¡El ${enemyDino.name} rompió la cápsula y escapó de la trampa!`, ...prev]);
-      }
-    }, 2000);
+  // Acción 3: Intentar Capturar
+  const handleCapture = () => {
+    sound.playSound('craft');
+    // Mayor probabilidad de captura si el dinosaurio tiene poca vida
+    if (wildHp <= 50 || Math.random() > 0.3) {
+      sound.playSound('victory');
+      onBattleEnd(true, wildDino);
+    } else {
+      sound.playSound('click');
+      // Si falla la captura, el dinosaurio salvaje resiste
+      setWildHp(prev => Math.max(10, prev - 15));
+    }
+  };
+
+  // Acción 4: Huir del combate
+  const handleFlee = () => {
+    sound.playSound('click');
+    onBattleEnd(false);
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-4 sm:p-6 text-white select-none">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-        <button
-          onClick={() => onBattleEnd(false)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
-        >
-          <ArrowLeft className="w-4 h-4" /> Huir
-        </button>
-        <div className="text-center">
-          <span className="text-amber-400 font-extrabold text-sm uppercase tracking-wider block">
-            Combate Táctico de Dinosaurios
-          </span>
-          <span className="text-slate-400 text-[10px]">Turno Táctico en Vivo</span>
-        </div>
-        <div className="w-16" />
-      </div>
-
-      {/* Battle Arena Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto max-w-5xl mx-auto w-full">
-        {/* Enemy Dino Card */}
-        <div className="bg-slate-900/80 border border-red-500/30 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="bg-red-500/20 text-red-400 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
-                {enemyDino.rarity} • {enemyDino.element}
-              </span>
-              <h2 className="text-xl font-black text-white mt-1">{enemyDino.name}</h2>
-              <span className="text-slate-400 text-xs">Nivel {enemyDino.level}</span>
-            </div>
-
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-amber-700 flex items-center justify-center text-2xl shadow-lg border border-red-400">
-              🦖
-            </div>
-          </div>
-
-          {/* Enemy HP */}
-          <div className="mt-4">
-            <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-              <span>HP Enemigo</span>
-              <span>{enemyDino.hp} / {enemyDino.maxHp}</span>
-            </div>
-            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
-              <div
-                className="h-full bg-gradient-to-r from-red-500 to-orange-400 transition-all duration-300"
-                style={{ width: `${(enemyDino.hp / enemyDino.maxHp) * 100}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Player Active Dino Card */}
-        <div className="bg-slate-900/80 border border-emerald-500/30 rounded-3xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
-          <div className="flex justify-between items-start">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 flex items-center justify-center text-2xl shadow-lg border border-emerald-400">
-              🦕
+    <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex flex-col justify-between p-6 select-none animate-fadeIn font-sans">
+      
+      {/* --- PANEL SUPERIOR: OPONENTE SALVAJE --- */}
+      <div className="w-full flex justify-center">
+        <div className={`w-full max-w-lg bg-slate-900/90 border-2 rounded-3xl p-5 shadow-2xl ${
+          isBoss ? 'border-red-500/80 shadow-red-500/20' : 'border-amber-500/50 shadow-amber-500/10'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🦖</span>
+              <div>
+                <h2 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  {wildDino.name}
+                  {isBoss && (
+                    <span className="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> JEFE COLOSAL
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-400 font-semibold">
+                  Dinosaurio Salvaje en la Selva
+                </p>
+              </div>
             </div>
 
             <div className="text-right">
-              <span className="bg-emerald-500/20 text-emerald-400 font-black text-[10px] px-2 py-0.5 rounded-full uppercase">
-                Aliado • {activeDino.element}
+              <span className="text-xs font-extrabold text-emerald-400">
+                {wildHp} / {maxWildHp} HP
               </span>
-              <h2 className="text-xl font-black text-white mt-1">{activeDino.name}</h2>
-              <span className="text-slate-400 text-xs">Nivel {activeDino.level}</span>
             </div>
           </div>
 
-          {/* Player HP */}
-          <div className="mt-4">
-            <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
-              <span>HP Aliado</span>
-              <span>{activeDino.hp} / {activeDino.maxHp}</span>
-            </div>
-            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+          {/* BARRA DE VIDA SALVAJE */}
+          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+            <div
+              className={`h-full transition-all duration-500 ${
+                wildHp > 50
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-400'
+                  : wildHp > 25
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
+                  : 'bg-gradient-to-r from-red-600 to-rose-500'
+              }`}
+              style={{ width: `${(wildHp / maxWildHp) * 100}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* --- CENTRO: INSIGNIA VS --- */}
+      <div className="flex items-center justify-center my-auto pointer-events-none">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900/80 border-2 border-amber-500/40 flex items-center justify-center text-amber-400 shadow-2xl">
+          <Swords className="w-8 h-8 animate-pulse" />
+        </div>
+      </div>
+
+      {/* --- PANEL INFERIOR: EQUIPO DE CRIS Y BOTONES DE ACCIÓN --- */}
+      <div className="w-full max-w-4xl mx-auto space-y-4">
+        
+        {/* TARJETAS DEL EQUIPO DE CRIS */}
+        <div className="flex items-center justify-center gap-3">
+          {playerTeam.length > 0 ? (
+            playerTeam.map((dino, idx) => (
               <div
-                className="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300"
-                style={{ width: `${(activeDino.hp / activeDino.maxHp) * 100}%` }}
-              />
+                key={dino.id || idx}
+                className="bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-2 flex items-center gap-2.5 shadow-lg"
+              >
+                <span className="text-lg">🦎</span>
+                <div>
+                  <span className="text-xs font-bold text-amber-300 block">
+                    {dino.name}
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <Heart className="w-2.5 h-2.5 fill-current" /> Listo para luchar
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-slate-900/80 border border-slate-700 rounded-2xl px-4 py-2 text-xs text-slate-400 font-medium">
+              🐸 Cris en combate directo
             </div>
-          </div>
+          )}
         </div>
-      </div>
 
-      {/* Battle Log Box */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-3 max-w-5xl mx-auto w-full h-20 overflow-y-auto my-2 text-xs text-slate-300 flex flex-col gap-1 font-mono">
-        {battleLog.map((log, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <span className="text-amber-400">›</span> {log}
-          </div>
-        ))}
-      </div>
-
-      {/* Action Controls & Skill Buttons */}
-      <div className="max-w-5xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-3">
-        {activeDino.skills.map(skill => (
+        {/* BOTONES DE ACCIÓN TÁCTICA */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* BOTÓN 1: ATACAR */}
           <button
-            key={skill.id}
-            onClick={() => handleUseSkill(skill)}
-            disabled={isVictory || isDefeat || isCapturing}
-            className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 disabled:opacity-50 text-slate-950 p-3.5 rounded-2xl font-black text-xs flex items-center justify-between shadow-lg transition active:scale-95 border border-yellow-300"
+            onClick={handleAttack}
+            className="bg-gradient-to-tr from-red-600 to-amber-600 hover:brightness-110 border-2 border-red-300 rounded-2xl p-4 flex flex-col items-center justify-center text-white font-extrabold shadow-xl transition active:scale-95 cursor-pointer"
           >
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-slate-950" />
-              <span>{skill.nameEs}</span>
-            </div>
-            <span className="bg-slate-950/20 px-2 py-0.5 rounded-lg text-[10px]">Daño: {skill.damage}</span>
+            <Flame className="w-7 h-7 mb-1" />
+            <span className="text-xs uppercase tracking-wider">Atacar</span>
+            <span className="text-[10px] text-red-100 font-normal mt-0.5">Daño Directo</span>
           </button>
-        ))}
 
-        <button
-          onClick={handleAttemptCapture}
-          disabled={isVictory || isDefeat || isCapturing}
-          className="bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 disabled:opacity-50 text-slate-950 p-3.5 rounded-2xl font-black text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-95 border border-emerald-200"
-        >
-          <Sparkles className="w-5 h-5" />
-          <span>{isCapturing ? 'Lanzando Cápsula...' : 'Lanzar Cápsula de Captura'}</span>
-        </button>
-      </div>
+          {/* BOTÓN 2: TRAMPA TÁCTICA */}
+          <button
+            onClick={handleTrapTactics}
+            className="bg-gradient-to-tr from-amber-600 to-orange-500 hover:brightness-110 border-2 border-amber-300 rounded-2xl p-4 flex flex-col items-center justify-center text-slate-950 font-extrabold shadow-xl transition active:scale-95 cursor-pointer"
+          >
+            <Shield className="w-7 h-7 mb-1" />
+            <span className="text-xs uppercase tracking-wider">Lanzar Trampa</span>
+            <span className="text-[10px] text-slate-900 font-normal mt-0.5">Debilitar Bestia</span>
+          </button>
 
-      {/* Victory / Defeat Modal overlay */}
-      {(isVictory || isDefeat) && (
-        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-6 z-20">
-          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl p-8 max-w-md w-full text-center shadow-2xl flex flex-col items-center">
-            <Award className="w-16 h-16 text-amber-400 mb-3 animate-bounce" />
-            <h3 className="text-2xl font-black text-white mb-2">
-              {isVictory ? '¡VICTORIA EN COMBATE!' : '¡TU DINOSAURIO SE HA AGOTADO!'}
-            </h3>
-            <p className="text-slate-300 text-xs mb-6">
-              {isVictory
-                ? 'Has ganado experiencia, monedas prehistóricas y cristales de ámbar.'
-                : 'Regresa al campamento para recuperar la energía de tus dinosaurios.'}
-            </p>
-            <button
-              onClick={() => onBattleEnd(isVictory)}
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black rounded-2xl shadow-xl transition active:scale-95"
-            >
-              Continuar la Aventura
-            </button>
-          </div>
+          {/* BOTÓN 3: CAPTURAR */}
+          <button
+            onClick={handleCapture}
+            className="bg-gradient-to-tr from-emerald-600 to-green-500 hover:brightness-110 border-2 border-emerald-300 rounded-2xl p-4 flex flex-col items-center justify-center text-slate-950 font-extrabold shadow-xl transition active:scale-95 cursor-pointer"
+          >
+            <Sparkles className="w-7 h-7 mb-1" />
+            <span className="text-xs uppercase tracking-wider">Capturar</span>
+            <span className="text-[10px] text-slate-900 font-normal mt-0.5">Sumar a Colección</span>
+          </button>
+
+          {/* BOTÓN 4: HUIR */}
+          <button
+            onClick={handleFlee}
+            className="bg-slate-900 hover:bg-slate-800 border-2 border-slate-700 rounded-2xl p-4 flex flex-col items-center justify-center text-slate-300 font-extrabold shadow-xl transition active:scale-95 cursor-pointer"
+          >
+            <LogOut className="w-7 h-7 mb-1 text-slate-400" />
+            <span className="text-xs uppercase tracking-wider">Huir</span>
+            <span className="text-[10px] text-slate-400 font-normal mt-0.5">Volver a Selva</span>
+          </button>
         </div>
-      )}
+
+      </div>
     </div>
   );
 };
