@@ -31,7 +31,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
     // --- THREE.JS SCENE SETUP ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
+    
+    // MEJORA VISUAL: Atmósfera de selva densa y húmeda
+    scene.background = new THREE.Color(0x0f2b18);
+    scene.fog = new THREE.FogExp2(0x0f2b18, 0.025);
 
     const camera = new THREE.PerspectiveCamera(
       55,
@@ -49,20 +52,42 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     containerRef.current.appendChild(renderer.domElement);
 
     // --- LIGHTING ---
-    const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambLight = new THREE.AmbientLight(0xffffff, 0.4);
     scene.add(ambLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    dirLight.position.set(20, 40, 20);
+    // Luz del sol tropical (cálida)
+    const dirLight = new THREE.DirectionalLight(0xfffae6, 1.5);
+    dirLight.position.set(30, 50, 30);
     dirLight.castShadow = settings.shadowsEnabled;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
+    dirLight.shadow.mapSize.width = 2048; // Sombras en alta resolución
+    dirLight.shadow.mapSize.height = 2048;
     scene.add(dirLight);
+
+    // Luz de rebote de la jungla (verde oscuro)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x0f2b18, 0.6);
+    scene.add(hemiLight);
 
     // --- WORLD ENVIRONMENT ---
     const worldEnv: World3DEnvironment = build3DWorldEnvironment(currentLevel);
     scene.add(worldEnv.sceneGroup);
     worldEnv.updateWeatherLighting(dirLight, ambLight, scene);
+
+    // --- EL HUEVO LEGENDARIO (META DEL NIVEL) ---
+    const eggGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+    const eggMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      emissive: 0xffaa00,
+      emissiveIntensity: 0.6,
+      metalness: 1,
+      roughness: 0.2
+    });
+    const eggMesh = new THREE.Mesh(eggGeometry, eggMaterial);
+    eggMesh.position.set(0, 3, 35); // Posición exacta de la Roca Ceremonial
+    
+    // Luz mágica emanando del huevo
+    const eggLight = new THREE.PointLight(0xffd700, 2, 20);
+    eggMesh.add(eggLight);
+    scene.add(eggMesh);
 
     // --- PLAYER CHARACTER (LEO & FROG) ---
     const player = new VoxelCharacter();
@@ -158,6 +183,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       player.updateAnimation(delta, speed);
       if (mountedMesh3D) mountedMesh3D.updateAnimation(delta, speed);
 
+      // Animación del Huevo Legendario (Flotando y girando)
+      eggMesh.rotation.y += delta * 0.5;
+      eggMesh.position.y = 3 + Math.sin(time / 500) * 0.3;
+
       // Wild Dinos Roaming & Collision Detection
       wildDinoMeshes.forEach(item => {
         item.mesh3D.updateAnimation(delta, 0.2);
@@ -175,11 +204,11 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         onClimbCeremonialRock();
       }
 
-      // Camera Follow
+      // Cámara estilo aventura 3era persona (más cerca e inmersiva)
       camera.position.x = player.mesh.position.x;
-      camera.position.y = player.mesh.position.y + 12;
-      camera.position.z = player.mesh.position.z - 16;
-      camera.lookAt(player.mesh.position.x, player.mesh.position.y + 2, player.mesh.position.z);
+      camera.position.y = player.mesh.position.y + 7;
+      camera.position.z = player.mesh.position.z - 12;
+      camera.lookAt(player.mesh.position.x, player.mesh.position.y + 3, player.mesh.position.z + 5);
 
       // Weather Particles
       worldEnv.updateParticles(delta);

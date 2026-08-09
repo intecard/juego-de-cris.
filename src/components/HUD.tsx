@@ -14,6 +14,7 @@ interface HUDProps {
   onThrowCapture: () => void;
   onTriggerBattle: () => void;
   onMoveJoystick: (dx: number, dy: number) => void;
+  onPlaceTrap?: () => void; // MEJORA: Prop opcional para colocar trampas en el sendero
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -28,6 +29,7 @@ export const HUD: React.FC<HUDProps> = ({
   onThrowCapture,
   onTriggerBattle,
   onMoveJoystick,
+  onPlaceTrap,
 }) => {
   const [touchStart, setTouchStart] = React.useState<{ x: number; y: number } | null>(null);
 
@@ -107,12 +109,17 @@ export const HUD: React.FC<HUDProps> = ({
 
         {/* Level & Weather Badge */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl px-4 py-2 flex items-center gap-2 shadow-lg">
-            <span className="text-xs font-bold text-amber-400">
-              Nivel {currentLevel.id}: {currentLevel.nameEs}
-            </span>
-            <span className="bg-amber-500/20 text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
-              {currentLevel.weather}
+          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/60 rounded-2xl px-4 py-2 flex flex-col items-end shadow-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-amber-400">
+                Nivel {currentLevel.id}: {currentLevel.nameEs}
+              </span>
+              <span className="bg-amber-500/20 text-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                {currentLevel.weather}
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium">
+              Objetivo: Tocar Huevo en Montaña (Z=35)
             </span>
           </div>
 
@@ -168,7 +175,7 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Action Vector Buttons */}
-        <div className="flex items-center gap-3 pointer-events-auto">
+        <div className="flex items-center gap-2.5 pointer-events-auto">
           {/* Mount Dino Button */}
           <button
             onClick={onToggleMount}
@@ -181,6 +188,18 @@ export const HUD: React.FC<HUDProps> = ({
             <Compass className="w-6 h-6 mb-0.5" />
             <span className="text-[10px]">{player.mountedDinoId ? 'Desmontar' : 'Montar'}</span>
           </button>
+
+          {/* Place Trap Button (MEJORA AVENTURA) */}
+          {onPlaceTrap && (
+            <button
+              onClick={onPlaceTrap}
+              className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-600 to-orange-500 border-2 border-amber-300 text-slate-950 flex flex-col items-center justify-center font-bold shadow-xl transition active:scale-90"
+              title="Colocar Trampa en el suelo"
+            >
+              <Shield className="w-6 h-6 mb-0.5" />
+              <span className="text-[10px] uppercase font-black">Trampa</span>
+            </button>
+          )}
 
           {/* Capture Capsule Button */}
           <button

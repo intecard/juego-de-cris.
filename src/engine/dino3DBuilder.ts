@@ -11,7 +11,12 @@ export interface Dino3DInstance {
   updateAnimation: (delta: number, speed: number, isAction?: boolean) => void;
 }
 
-export function build3DDinosaur(modelType: string, primaryColorHex: string = '#800020', secondaryColorHex: string = '#d4af37', scaleMultiplier: number = 1.0): Dino3DInstance {
+export function build3DDinosaur(
+  modelType: string,
+  primaryColorHex: string = '#800020',
+  secondaryColorHex: string = '#d4af37',
+  scaleMultiplier: number = 1.0
+): Dino3DInstance {
   const root = new THREE.Group();
   const bodyGroup = new THREE.Group();
   const headGroup = new THREE.Group();
@@ -30,20 +35,26 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
     roughness: 0.5,
   });
 
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-  const toothMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-  const saddleMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.7 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff1111, roughness: 0.3 });
+  const toothMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.4 });
+  const saddleMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.8 });
+  const clawMat = new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.5 });
 
   let animTime = 0;
-  let saddlePos = new THREE.Vector3(0, 1.8, 0);
+  const saddlePos = new THREE.Vector3(0, 1.8, 0);
 
   switch (modelType) {
     case 'velociraptor': {
-      // Body
+      // Body Voxel
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 1.4), primaryMat);
       body.position.set(0, 0.9, 0);
       body.castShadow = true;
       bodyGroup.add(body);
+
+      // Stripes / Detail Blocks on Back
+      const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.15, 0.3), secondaryMat);
+      stripe1.position.set(0, 1.15, -0.2);
+      bodyGroup.add(stripe1);
 
       // Neck & Head
       headGroup.position.set(0, 1.2, 0.7);
@@ -55,35 +66,49 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       head.position.set(0, 0.5, 0.3);
       head.castShadow = true;
 
+      const snoutTop = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.15, 0.4), secondaryMat);
+      snoutTop.position.set(0, 0.73, 0.45);
+
       const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), eyeMat);
       eyeL.position.set(-0.24, 0.6, 0.4);
       const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.08), eyeMat);
       eyeR.position.set(0.24, 0.6, 0.4);
 
-      headGroup.add(neck, head, eyeL, eyeR);
+      // Sharp Teeth
+      const toothL = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.05), toothMat);
+      toothL.position.set(-0.18, 0.28, 0.6);
+      const toothR = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.05), toothMat);
+      toothR.position.set(0.18, 0.28, 0.6);
+
+      headGroup.add(neck, head, snoutTop, eyeL, eyeR, toothL, toothR);
 
       // Tail
       tailGroup.position.set(0, 0.9, -0.7);
       const tail = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 1.6), primaryMat);
       tail.position.set(0, 0, -0.8);
+      tail.castShadow = true;
       tailGroup.add(tail);
 
-      // Legs
+      // Legs with Raptor Claw
       leftLegGroup.position.set(-0.45, 0.8, -0.1);
       const lThigh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.35), secondaryMat);
       lThigh.position.y = -0.3;
       const lClaw = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.4), primaryMat);
       lClaw.position.set(0, -0.6, 0.1);
-      leftLegGroup.add(lThigh, lClaw);
+      const lSickleClaw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.15), clawMat);
+      lSickleClaw.position.set(-0.08, -0.55, 0.25);
+      leftLegGroup.add(lThigh, lClaw, lSickleClaw);
 
       rightLegGroup.position.set(0.45, 0.8, -0.1);
       const rThigh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.6, 0.35), secondaryMat);
       rThigh.position.y = -0.3;
       const rClaw = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.4), primaryMat);
       rClaw.position.set(0, -0.6, 0.1);
-      rightLegGroup.add(rThigh, rClaw);
+      const rSickleClaw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.15), clawMat);
+      rSickleClaw.position.set(0.08, -0.55, 0.25);
+      rightLegGroup.add(rThigh, rClaw, rSickleClaw);
 
-      saddlePos.set(0, 1.3, 0);
+      saddlePos.set(0, 1.35, 0);
       break;
     }
 
@@ -92,7 +117,7 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       const isKing = modelType === 'king_trex';
       const sz = isKing ? 1.8 : 1.0;
 
-      // Heavy Body
+      // Heavy Voxel Body
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.6 * sz, 1.8 * sz, 2.5 * sz), primaryMat);
       body.position.set(0, 1.8 * sz, 0);
       body.castShadow = true;
@@ -100,8 +125,8 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       if (isKing) {
         // Glowing Lava Spikes on King Rex
         for (let i = 0; i < 5; i++) {
-          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 4), secondaryMat);
-          spike.position.set(0, 1.0 * sz, (-1.0 + i * 0.5) * sz);
+          const spike = new THREE.Mesh(new THREE.BoxGeometry(0.3 * sz, 0.6 * sz, 0.3 * sz), secondaryMat);
+          spike.position.set(0, 2.9 * sz, (-1.0 + i * 0.5) * sz);
           bodyGroup.add(spike);
         }
       }
@@ -110,42 +135,50 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       // Massive Jaw Head
       headGroup.position.set(0, 2.8 * sz, 1.2 * sz);
       const skull = new THREE.Mesh(new THREE.BoxGeometry(1.0 * sz, 1.0 * sz, 1.6 * sz), primaryMat);
-      skull.position.set(0, 0.2, 0.5);
+      skull.position.set(0, 0.2 * sz, 0.5 * sz);
+      skull.castShadow = true;
 
       const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.9 * sz, 0.4 * sz, 1.4 * sz), secondaryMat);
-      jaw.position.set(0, -0.4, 0.5);
+      jaw.position.set(0, -0.4 * sz, 0.5 * sz);
 
       for (let i = 0; i < 6; i++) {
-        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.06 * sz, 0.2 * sz, 4), toothMat);
-        tooth.position.set(i % 2 === 0 ? -0.4 * sz : 0.4 * sz, -0.2 * sz, (0.1 + i * 0.2) * sz);
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.08 * sz, 0.22 * sz, 0.08 * sz), toothMat);
+        tooth.position.set(
+          i % 2 === 0 ? -0.4 * sz : 0.4 * sz,
+          -0.2 * sz,
+          (0.1 + i * 0.2) * sz
+        );
         headGroup.add(tooth);
       }
 
-      const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), eyeMat);
-      eyeL.position.set(-0.52 * sz, 0.4, 0.8 * sz);
-      const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), eyeMat);
-      eyeR.position.set(0.52 * sz, 0.4, 0.8 * sz);
+      const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.12 * sz, 0.12 * sz, 0.12 * sz), eyeMat);
+      eyeL.position.set(-0.52 * sz, 0.4 * sz, 0.8 * sz);
+      const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.12 * sz, 0.12 * sz, 0.12 * sz), eyeMat);
+      eyeR.position.set(0.52 * sz, 0.4 * sz, 0.8 * sz);
 
       headGroup.add(skull, jaw, eyeL, eyeR);
 
       // Tail
       tailGroup.position.set(0, 1.8 * sz, -1.2 * sz);
       const tail = new THREE.Mesh(new THREE.BoxGeometry(0.8 * sz, 0.8 * sz, 2.8 * sz), primaryMat);
-      tail.position.set(0, -0.2, -1.4 * sz);
+      tail.position.set(0, -0.2 * sz, -1.4 * sz);
+      tail.castShadow = true;
       tailGroup.add(tail);
 
       // Strong Legs
       leftLegGroup.position.set(-0.9 * sz, 1.5 * sz, -0.2 * sz);
       const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.5 * sz, 1.5 * sz, 0.7 * sz), secondaryMat);
       lLeg.position.y = -0.75 * sz;
+      lLeg.castShadow = true;
       leftLegGroup.add(lLeg);
 
       rightLegGroup.position.set(0.9 * sz, 1.5 * sz, -0.2 * sz);
       const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.5 * sz, 1.5 * sz, 0.7 * sz), secondaryMat);
       rLeg.position.y = -0.75 * sz;
+      rLeg.castShadow = true;
       rightLegGroup.add(rLeg);
 
-      saddlePos.set(0, 2.8 * sz, 0);
+      saddlePos.set(0, 2.85 * sz, 0);
       break;
     }
 
@@ -158,22 +191,23 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       // Frill & Horns Head
       headGroup.position.set(0, 1.2, 1.1);
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.0), primaryMat);
+      head.castShadow = true;
 
-      // Large Shield Frill
-      const frill = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.9, 0.2, 8), secondaryMat);
-      frill.rotation.x = Math.PI / 3;
+      // Large Shield Frill (Blocky Voxel Style)
+      const frill = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 0.25), secondaryMat);
+      frill.rotation.x = Math.PI / 6;
       frill.position.set(0, 0.6, -0.3);
 
-      // 3 Horns
-      const horn1 = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.9, 6), secondaryMat);
-      horn1.rotation.x = Math.PI / 3;
+      // 3 Voxel Horns
+      const horn1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 0.14), toothMat);
+      horn1.rotation.x = Math.PI / 4;
       horn1.position.set(-0.35, 0.6, 0.4);
 
-      const horn2 = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.9, 6), secondaryMat);
-      horn2.rotation.x = Math.PI / 3;
+      const horn2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 0.14), toothMat);
+      horn2.rotation.x = Math.PI / 4;
       horn2.position.set(0.35, 0.6, 0.4);
 
-      const hornNose = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 6), secondaryMat);
+      const hornNose = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), toothMat);
       hornNose.rotation.x = Math.PI / 4;
       hornNose.position.set(0, 0.2, 0.8);
 
@@ -189,14 +223,16 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       leftLegGroup.position.set(-0.8, 0.8, 0);
       const lLeg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), secondaryMat);
       lLeg.position.y = -0.4;
+      lLeg.castShadow = true;
       leftLegGroup.add(lLeg);
 
       rightLegGroup.position.set(0.8, 0.8, 0);
       const rLeg = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), secondaryMat);
       rLeg.position.y = -0.4;
+      rLeg.castShadow = true;
       rightLegGroup.add(rLeg);
 
-      saddlePos.set(0, 1.8, 0);
+      saddlePos.set(0, 1.85, 0);
       break;
     }
 
@@ -205,37 +241,40 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       // Lean Body
       const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 1.2), primaryMat);
       body.position.set(0, 1.5, 0);
+      body.castShadow = true;
       bodyGroup.add(body);
 
       // Crested Head & Long Beak
       headGroup.position.set(0, 1.6, 0.6);
-      const beak = new THREE.Mesh(new THREE.ConeGeometry(0.15, 1.2, 4), secondaryMat);
-      beak.rotation.x = Math.PI / 2;
+      const beak = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.2), secondaryMat);
       beak.position.set(0, 0, 0.6);
 
-      const crest = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.8, 4), primaryMat);
-      crest.rotation.x = -Math.PI / 3;
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.8), primaryMat);
+      crest.rotation.x = -Math.PI / 4;
       crest.position.set(0, 0.3, -0.3);
 
       headGroup.add(beak, crest);
 
-      // Wings
+      // Wings Voxel
       const leftWing = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.8), primaryMat);
       leftWing.position.set(-1.3, 1.5, 0);
+      leftWing.castShadow = true;
 
       const rightWing = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.08, 0.8), primaryMat);
       rightWing.position.set(1.3, 1.5, 0);
+      rightWing.castShadow = true;
 
       wingsGroup.add(leftWing, rightWing);
 
-      saddlePos.set(0, 1.8, 0);
+      saddlePos.set(0, 1.85, 0);
       break;
     }
 
     default: {
-      // Generic Quadruped / Biped Low-Poly Dino
+      // Generic Quadruped / Biped Low-Poly Voxel Dino
       const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.0, 1.8), primaryMat);
       body.position.set(0, 1.0, 0);
+      body.castShadow = true;
       bodyGroup.add(body);
 
       headGroup.position.set(0, 1.4, 0.9);
@@ -257,7 +296,7 @@ export function build3DDinosaur(modelType: string, primaryColorHex: string = '#8
       rLeg.position.y = -0.35;
       rightLegGroup.add(rLeg);
 
-      saddlePos.set(0, 1.6, 0);
+      saddlePos.set(0, 1.65, 0);
       break;
     }
   }

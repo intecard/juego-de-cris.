@@ -10,27 +10,37 @@ export interface World3DEnvironment {
   waterMesh?: THREE.Mesh;
   particleSystem: THREE.Points;
   updateParticles: (delta: number) => void;
-  updateWeatherLighting: (dirLight: THREE.DirectionalLight, ambLight: THREE.AmbientLight, scene: THREE.Scene) => void;
+  updateWeatherLighting: (
+    dirLight: THREE.DirectionalLight,
+    ambLight: THREE.AmbientLight,
+    scene: THREE.Scene
+  ) => void;
 }
 
 export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   const sceneGroup = new THREE.Group();
 
-  // Terrain Base
-  const terrainGeo = new THREE.PlaneGeometry(120, 120, 48, 48);
+  // --- TERRENO BASE CON RELIEVE VOXEL ---
+  const terrainGeo = new THREE.PlaneGeometry(140, 140, 56, 56);
   terrainGeo.rotateX(-Math.PI / 2);
 
   const posAttr = terrainGeo.attributes.position;
   for (let i = 0; i < posAttr.count; i++) {
     const x = posAttr.getX(i);
     const z = posAttr.getZ(i);
-    // Heightmap noise
-    let y = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 2.5;
 
-    // Raise ceremonial altar hill at x=0, z=35
+    // Ondulación natural de selva
+    let y = Math.sin(x * 0.08) * Math.cos(z * 0.08) * 2.2;
+
+    // Aplanar el sendero central de aventura (de Z = -30 hasta Z = 25)
+    if (Math.abs(x) < 4 && z < 25) {
+      y = 0;
+    }
+
+    // Elevar la colina donde nace la Montaña Ceremonial (x = 0, z = 35)
     const distToAltar = Math.hypot(x, z - 35);
-    if (distToAltar < 15) {
-      y += (15 - distToAltar) * 0.8;
+    if (distToAltar < 18) {
+      y += (18 - distToAltar) * 0.65;
     }
 
     posAttr.setY(i, y);
@@ -38,8 +48,8 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   terrainGeo.computeVertexNormals();
 
   const terrainMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(level.terrainColor),
-    roughness: 0.8,
+    color: new THREE.Color(level.terrainColor || '#1b4332'),
+    roughness: 0.85,
     flatShading: true,
   });
 
@@ -47,99 +57,182 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
   terrainMesh.receiveShadow = true;
   sceneGroup.add(terrainMesh);
 
-  // Ceremonial Monument Rock at (0, y, 35)
-  const ceremonialGroup = new THREE.Group();
-  ceremonialGroup.position.set(0, 4, 35);
+  // --- CAMINO LARGO DE AVENTURA (BLOQUES DE PIEDRA/TIERRA) ---
+  const pathGroup = new THREE.Group();
+  const pathMat = new THREE.MeshStandardMaterial({
+    color: 0x8d6e63,
+    roughness: 0.9,
+    flatShading: true,
+  });
 
-  const rockGeo = new THREE.CylinderGeometry(3.5, 6.0, 6, 8);
-  const rockMat = new THREE.MeshStandardMaterial({ color: 0x4a4e69, roughness: 0.9, flatShading: true });
-  const ceremonialRockMesh = new THREE.Mesh(rockGeo, rockMat);
+  for (let z = -25; z < 28; z += 3) {
+    const tileGeo = new THREE.BoxGeometry(3.6, 0.2, 2.6);
+    const tileMesh = new THREE.Mesh(tileGeo, pathMat);
+    tileMesh.position.set((Math.random() - 0.5) * 0.6, 0.05, z);
+    tileMesh.receiveShadow = true;
+    pathGroup.add(tileMesh);
+  }
+  sceneGroup.add(pathGroup);
+
+  // --- MONTAÑA CEREMONIAL VOXEL (PIRÁMIDE ESCALONADA EN Z = 35) ---
+  const ceremonialGroup = new THREE.Group();
+  ceremonialGroup.position.set(0, 0, 35);
+
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0x4a4e69,
+    roughness: 0.9,
+    flatShading: true,
+  });
+
+  // Base ancha de la montaña
+  const step1 = new THREE.Mesh(new THREE.BoxGeometry(14, 2, 14), rockMat);
+  step1.position.y = 1;
+  step1.castShadow = true;
+  step1.receiveShadow = true;
+
+  // Peldaño medio
+  const step2 = new THREE.Mesh(new THREE.BoxGeometry(10, 2, 10), rockMat);
+  step2.position.y = 3;
+  step2.castShadow = true;
+  step2.receiveShadow = true;
+
+  // Cima / Altar sagrado
+  const ceremonialRockMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 2, 6), rockMat);
+  ceremonialRockMesh.position.y = 5;
   ceremonialRockMesh.castShadow = true;
   ceremonialRockMesh.receiveShadow = true;
 
-  // Glowing Legendary Egg atop rock
-  const eggGeo = new THREE.SphereGeometry(0.8, 16, 16);
-  eggGeo.scale(1.0, 1.3, 1.0);
+  ceremonialGroup.add(step1, step2, ceremonialRockMesh);
+
+  // --- EL HUEVO LEGENDARIO Y PILARES EN LA CIMA ---
+  const eggGeo = new THREE.SphereGeometry(1.0, 16, 16);
+  eggGeo.scale(1.0, 1.35, 1.0);
   const eggMat = new THREE.MeshStandardMaterial({
     color: 0xffd166,
     emissive: 0xffb703,
     emissiveIntensity: 0.8,
     roughness: 0.2,
+    metalness: 0.8,
   });
   const eggMesh = new THREE.Mesh(eggGeo, eggMat);
-  eggMesh.position.set(0, 3.8, 0);
+  eggMesh.position.set(0, 7.2, 0); // Flotando sobre el altar
 
-  const eggLight = new THREE.PointLight(0xffb703, 3, 15);
-  eggLight.position.set(0, 4.5, 0);
+  const eggLight = new THREE.PointLight(0xffb703, 3, 20);
+  eggLight.position.set(0, 7.8, 0);
 
-  ceremonialGroup.add(ceremonialRockMesh, eggMesh, eggLight);
+  // 4 Pilares Voxel alrededor del huevo
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0xc9ada7, roughness: 0.5 });
+  const pillarOffsets = [
+    [-2, -2],
+    [2, -2],
+    [-2, 2],
+    [2, 2],
+  ];
+
+  pillarOffsets.forEach(([px, pz]) => {
+    const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.5, 0.8), pillarMat);
+    pillar.position.set(px, 6.5, pz);
+    pillar.castShadow = true;
+    ceremonialGroup.add(pillar);
+  });
+
+  ceremonialGroup.add(eggMesh, eggLight);
   sceneGroup.add(ceremonialGroup);
 
-  // Water Body (if applicable)
+  // --- CUERPO DE AGUA (BIOMAS DE RÍO, PANTANO O COSTA) ---
   let waterMesh: THREE.Mesh | undefined;
   if (level.biome === 'Swamp' || level.biome === 'River' || level.biome === 'Coast') {
-    const waterGeo = new THREE.PlaneGeometry(120, 120);
+    const waterGeo = new THREE.PlaneGeometry(140, 140);
     waterGeo.rotateX(-Math.PI / 2);
     const waterMat = new THREE.MeshStandardMaterial({
       color: 0x0077b6,
       transparent: true,
-      opacity: 0.7,
+      opacity: 0.65,
       roughness: 0.1,
-      metalness: 0.1,
+      metalness: 0.2,
     });
     waterMesh = new THREE.Mesh(waterGeo, waterMat);
-    waterMesh.position.y = -0.5;
+    waterMesh.position.y = -0.4;
     sceneGroup.add(waterMesh);
   }
 
-  // Foliage & Environment Props (Trees, Rocks, Crystals)
-  const propCount = level.foliageDensity === 'Dense' ? 80 : level.foliageDensity === 'Medium' ? 45 : 20;
+  // --- JUNGLA ESTILO VOXEL (ÁRBOLES, CRISTALES Y PALMERAS EN BLOQUES) ---
+  const propCount =
+    level.foliageDensity === 'Dense' ? 85 : level.foliageDensity === 'Medium' ? 50 : 25;
 
-  const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037 });
-  const treeLeavesMat = new THREE.MeshStandardMaterial({ color: 0x2d6a4f, flatShading: true });
-  const crystalMat = new THREE.MeshStandardMaterial({ color: 0x48cae4, emissive: 0x00b4d8, emissiveIntensity: 0.5 });
+  const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x4e3629, roughness: 0.9 });
+  const leafColors = [0x1b4332, 0x2d6a4f, 0x40916c];
+  const crystalMat = new THREE.MeshStandardMaterial({
+    color: 0x48cae4,
+    emissive: 0x00b4d8,
+    emissiveIntensity: 0.5,
+  });
 
   for (let i = 0; i < propCount; i++) {
-    const rx = (Math.random() - 0.5) * 100;
-    const rz = (Math.random() - 0.5) * 100;
+    const rx = (Math.random() - 0.5) * 110;
+    const rz = (Math.random() - 0.5) * 110;
 
-    // Keep clear of center path and ceremonial altar
-    if (Math.hypot(rx, rz) < 6 || Math.hypot(rx, rz - 35) < 12) continue;
+    // Respetar el camino de aventura libre de obstáculos
+    if (Math.abs(rx) < 4.5 && rz < 28) continue;
+    // Respetar la montaña ceremonial
+    if (Math.hypot(rx, rz - 35) < 14) continue;
 
     if (level.biome === 'Cave' || level.biome === 'Ruins') {
-      // Crystal Formations or Ruin Pillars
-      const crystalGeo = new THREE.ConeGeometry(0.8 + Math.random() * 0.8, 3 + Math.random() * 4, 5);
+      // Cristales Voxel
+      const crystalGeo = new THREE.BoxGeometry(
+        0.8 + Math.random() * 0.6,
+        3 + Math.random() * 3,
+        0.8 + Math.random() * 0.6
+      );
       const crystal = new THREE.Mesh(crystalGeo, crystalMat);
       crystal.position.set(rx, 1.5, rz);
-      crystal.rotation.z = (Math.random() - 0.5) * 0.4;
+      crystal.rotation.y = Math.random() * Math.PI;
       sceneGroup.add(crystal);
     } else {
-      // Prehistoric Trees / Palms
+      // Árbol Voxel Multicapa
       const treeGroup = new THREE.Group();
       treeGroup.position.set(rx, 0, rz);
 
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, 4, 6), treeTrunkMat);
-      trunk.position.y = 2;
+      // Tronco cuadrado
+      const trunkHeight = 3 + Math.random() * 2;
+      const trunk = new THREE.Mesh(
+        new THREE.BoxGeometry(0.8, trunkHeight, 0.8),
+        treeTrunkMat
+      );
+      trunk.position.y = trunkHeight / 2;
       trunk.castShadow = true;
+      treeGroup.add(trunk);
 
-      const canopy = new THREE.Mesh(new THREE.ConeGeometry(2.5, 4, 6), treeLeavesMat);
-      canopy.position.y = 4.5;
-      canopy.castShadow = true;
+      // Copas de hojas en cubos superpuestos
+      const leafColor = leafColors[i % leafColors.length];
+      const leafMat = new THREE.MeshStandardMaterial({
+        color: leafColor,
+        roughness: 0.7,
+        flatShading: true,
+      });
 
-      treeGroup.add(trunk, canopy);
+      const leavesBottom = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.5, 3.2), leafMat);
+      leavesBottom.position.y = trunkHeight;
+      leavesBottom.castShadow = true;
+
+      const leavesTop = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 2.0), leafMat);
+      leavesTop.position.y = trunkHeight + 1.2;
+      leavesTop.castShadow = true;
+
+      treeGroup.add(leavesBottom, leavesTop);
       sceneGroup.add(treeGroup);
     }
   }
 
-  // Weather Particle System
-  const particleCount = 400;
+  // --- SISTEMA CLIMÁTICO DE PARTÍCULAS ---
+  const particleCount = 350;
   const particleGeo = new THREE.BufferGeometry();
   const particlePositions = new Float32Array(particleCount * 3);
 
   for (let i = 0; i < particleCount; i++) {
-    particlePositions[i * 3] = (Math.random() - 0.5) * 100;
+    particlePositions[i * 3] = (Math.random() - 0.5) * 120;
     particlePositions[i * 3 + 1] = Math.random() * 25;
-    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+    particlePositions[i * 3 + 2] = (Math.random() - 0.5) * 120;
   }
   particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 
@@ -177,7 +270,11 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
     pos.needsUpdate = true;
   };
 
-  const updateWeatherLighting = (dirLight: THREE.DirectionalLight, ambLight: THREE.AmbientLight, scene: THREE.Scene) => {
+  const updateWeatherLighting = (
+    dirLight: THREE.DirectionalLight,
+    ambLight: THREE.AmbientLight,
+    scene: THREE.Scene
+  ) => {
     if (level.weather === 'Night') {
       scene.background = new THREE.Color(0x050515);
       scene.fog = new THREE.FogExp2(0x050515, 0.02);
@@ -197,12 +294,12 @@ export function build3DWorldEnvironment(level: LevelInfo): World3DEnvironment {
       dirLight.intensity = 1.0;
       dirLight.color.setHex(0xf8f9fa);
     } else {
-      // Sunny / Default Tropical
-      scene.background = new THREE.Color(0x87ceeb);
-      scene.fog = new THREE.FogExp2(0x87ceeb, 0.008);
-      ambLight.intensity = 0.6;
-      dirLight.intensity = 1.2;
-      dirLight.color.setHex(0xffffff);
+      // Clima Tropical por defecto
+      scene.background = new THREE.Color(0x0f2b18);
+      scene.fog = new THREE.FogExp2(0x0f2b18, 0.022);
+      ambLight.intensity = 0.5;
+      dirLight.intensity = 1.4;
+      dirLight.color.setHex(0xfffae6);
     }
   };
 
